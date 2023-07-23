@@ -32,7 +32,6 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
     uint256 public numToppics;
     mapping(address => uint256) public userPoints;
     uint256 voteCondition = 3;
-
     uint256 topicPoint = 10;
     uint256 votePoint = 1;
     address public tokenContract;
@@ -47,6 +46,10 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         address indexed executor,
         uint256 timestamp
     );
+    enum Vote {
+        YES,
+        NO
+    }
 
     modifier withinDuration(uint256 _topicId) {
         require(
@@ -105,6 +108,13 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         Toppic storage topic = toppics[_topicId];
         require(topic.isEditable, "Topic is not editable");
 
+        // Check if the sender has already added an answer for this topic
+        for (uint256 i = 0; i < topicAnswers[_topicId].length; i++) {
+            if (topicAnswers[_topicId][i].answerOwner == msg.sender) {
+                revert("You have already added an answer for this topic");
+            }
+        }
+
         Answer memory newAnswer;
         newAnswer.toppicId = _topicId;
         newAnswer.voteUp = 0;
@@ -116,7 +126,7 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         emit Action(_topicId, "addAnswerToToppic", msg.sender, block.timestamp);
     }
 
-    function vote(uint256 _topicId, uint256 _answerIndex, bool _vote) public {
+    function vote(uint256 _topicId, uint256 _answerIndex, Vote _vote) public {
         require(_topicId < numToppics, "Invalid topic ID");
         require(
             _answerIndex < topicAnswers[_topicId].length,
@@ -132,7 +142,7 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         );
 
         // Update the vote count based on the vote type
-        if (_vote == true) {
+        if (_vote == Vote.YES) {
             answer.voteUp++;
         } else {
             answer.voteDown++;
@@ -300,6 +310,8 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         return (upvotes, downvotes);
     }
 
+    // set unity
+
     function setTokenContract(address _tokenContract) public onlyOwner {
         tokenContract = _tokenContract;
     }
@@ -307,4 +319,51 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
     function setDurationTime(uint256 _durationTime) external onlyOwner {
         durationTime = _durationTime;
     }
+
+    function setVoteCondition(uint256 _voteCondition) external onlyOwner {
+        voteCondition = _voteCondition;
+    }
+
+    function setTopicPoint(uint256 _topicPoint) external onlyOwner {
+        topicPoint = _topicPoint;
+    }
+
+    function setVotePoint(uint256 _votePoint) external onlyOwner {
+        votePoint = _votePoint;
+    }
+
+    function setRightAnswerPrizePercent(
+        uint8 _rightAnswerPrizePercent
+    ) external onlyOwner {
+        rightAnswerPrizePercent = _rightAnswerPrizePercent;
+    }
+
+    function setRightVoterPrizePercent(
+        uint8 _rightVoterPrizePercent
+    ) external onlyOwner {
+        rightVoterPrizePercent = _rightVoterPrizePercent;
+    }
+
+    function withdrawTokens() public onlyOwner {
+        uint256 contractBalance = AskToken(tokenContract).balanceOf(
+            address(this)
+        );
+        require(contractBalance > 0, "Contract has no token balance");
+
+        require(
+            AskToken(tokenContract).transfer(owner(), contractBalance),
+            "Token transfer failed"
+        );
+    }
+
+    function withdraw() public onlyOwner {
+        uint256 contractBalance = address(this).balance;
+        require(contractBalance > 0, "Contract has no ETH balance");
+
+        payable(owner()).transfer(contractBalance);
+    }
+
+    receive() external payable {}
+
+    fallback() external payable {}
 }
