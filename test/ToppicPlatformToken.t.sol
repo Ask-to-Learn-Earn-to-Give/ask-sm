@@ -40,7 +40,7 @@ contract ToppicPlatformTokenTest is StdCheats, Test {
 
         deployerAddress = vm.addr(deployer.deployerKey());
         vm.prank(deployerAddress);
-        // console.log("deploy address", deployerAddress);
+        console.log("deploy address", deployerAddress);
 
         vm.deal(bob, STARTING_AMOUNT);
         vm.deal(alice, 0 ether);

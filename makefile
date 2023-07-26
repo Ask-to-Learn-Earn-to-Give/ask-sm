@@ -35,3 +35,14 @@ anvil :; anvil -m 'test test test test test test test test test test test junk' 
 
 NETWORK_ARGS := --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_KEY) --broadcast
 
+# Deploy to BAOBAB:
+#1 make deployToken 
+#2 copy Token contract to .env file
+#3 run source .env
+#4 make deployPlatform
+
+# Deploy to Baobab: Same step with 
+
+deployToken:; forge create --rpc-url $(BAOBAB_RPC_URL) --private-key $(PRIVATE_KEY) script/DeployToppicPlatformToken.s.sol:DeployToppicPlatformToken
+
+deployPlatform:; forge create --rpc-url $(BAOBAB_RPC_URL) --private-key $(PRIVATE_KEY) script/DeployToppicPlatform.s.sol:DeploytopicPlatform --constructor-args $(ADDRESS_OF_TOKEN_BAOBAB)
