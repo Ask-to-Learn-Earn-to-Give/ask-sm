@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract AskToken is ERC20 {
+contract ToppicPlatformToken is ERC20 {
     constructor() ERC20("Ask Token", "ASK") {
         uint256 totalSupply = 1_000_000_000 * 10 ** decimals();
         _mint(msg.sender, totalSupply);
@@ -44,5 +44,9 @@ contract AskToken is ERC20 {
 
         _approve(msg.sender, spender, amount);
         return true;
+    }
+
+    function getContractAddress() public view returns (address) {
+        return address(this);
     }
 }

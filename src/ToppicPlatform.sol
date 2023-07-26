@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "./AskToken.sol";
+import "./ToppicPlatformToken.sol";
 
 contract ToppicPlatform is ReentrancyGuard, Ownable {
     struct Answer {
@@ -32,7 +32,8 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
     uint256 public numToppics;
     mapping(address => uint256) public userPoints;
     uint256 voteCondition = 3;
-    uint256 topicPoint = 10;
+    uint256 answerPoint = 10;
+    uint256 topicPoint = 3;
     uint256 votePoint = 1;
     address public tokenContract;
     uint256 public durationTime = 7 days;
@@ -98,6 +99,7 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         );
 
         numToppics++;
+        addPoints(msg.sender, topicPoint);
     }
 
     function addAnswerToToppic(
@@ -123,6 +125,7 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
 
         topicAnswers[_topicId].push(newAnswer);
 
+        addPoints(msg.sender, answerPoint);
         emit Action(_topicId, "addAnswerToToppic", msg.sender, block.timestamp);
     }
 
@@ -155,6 +158,7 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
         answerVoter[_topicId][_answerIndex][msg.sender] = true;
 
         emit Action(_topicId, "vote", msg.sender, block.timestamp);
+        addPoints(msg.sender, votePoint);
     }
 
     // get the right answer address in duration time or after get 10 vote up
@@ -255,21 +259,24 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
 
         // Check contract's token balance
         require(
-            AskToken(tokenContract).balanceOf(address(this)) >=
+            ToppicPlatformToken(tokenContract).balanceOf(address(this)) >=
                 prizeToDistribute,
             "Insufficient contract balance"
         );
 
         // Transfer prize to the winner of this question with the highest vote and on duration time
         require(
-            AskToken(tokenContract).transfer(winnerAddress, rightAnswerPrize),
+            ToppicPlatformToken(tokenContract).transfer(
+                winnerAddress,
+                rightAnswerPrize
+            ),
             "Token transfer to winner failed"
         );
 
         // Transfer prize to voters who voted on the winner answer question
         for (uint256 i = 0; i < voterAddresses.length; i++) {
             require(
-                AskToken(tokenContract).transfer(
+                ToppicPlatformToken(tokenContract).transfer(
                     voterAddresses[i],
                     voterRightAnswerPrize / voterAddresses.length
                 ),
@@ -345,13 +352,16 @@ contract ToppicPlatform is ReentrancyGuard, Ownable {
     }
 
     function withdrawTokens() public onlyOwner {
-        uint256 contractBalance = AskToken(tokenContract).balanceOf(
+        uint256 contractBalance = ToppicPlatformToken(tokenContract).balanceOf(
             address(this)
         );
         require(contractBalance > 0, "Contract has no token balance");
 
         require(
-            AskToken(tokenContract).transfer(owner(), contractBalance),
+            ToppicPlatformToken(tokenContract).transfer(
+                owner(),
+                contractBalance
+            ),
             "Token transfer failed"
         );
     }
