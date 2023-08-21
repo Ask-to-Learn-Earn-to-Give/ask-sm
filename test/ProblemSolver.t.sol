@@ -3,20 +3,16 @@
 pragma solidity ^0.8.19;
 
 import {Test, console} from "../lib/forge-std/src/Test.sol";
-import {ToppicPlatformToken} from "../src/ToppicPlatformToken.sol";
-import {DeployToppicPlatformToken} from "../script/DeployToppicPlatformToken.s.sol";
+import {ProblemSolver} from "../src/ProblemSolver.sol";
+import {DeployProblemSolver} from "../script/DeployProblemSolver.s.sol";
 import {StdCheats} from "../lib/forge-std/src/StdCheats.sol";
-
-interface MintableToken {
-    function mint(address, uint256) external;
-}
 
 contract ToppicPlatformTokenTest is StdCheats, Test {
     uint256 public DEFAULT_ANVIL_PRIVATE_KEY =
         0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
     uint256 public deployerKey;
-    ToppicPlatformToken public toppicPlatformToken;
-    DeployToppicPlatformToken public deployer;
+    ProblemSolver public problemSolver;
+    DeployProblemSolver public deployer;
 
     uint256 STARTING_AMOUNT = 50 ether;
     address public deployerAddress;
@@ -31,8 +27,8 @@ contract ToppicPlatformTokenTest is StdCheats, Test {
         } else {
             deployerKey = vm.envUint("PRIVATE_KEY");
         }
-        deployer = new DeployToppicPlatformToken();
-        toppicPlatformToken = deployer.run();
+        deployer = new DeployProblemSolver();
+        problemSolver = deployer.run();
 
         bob = makeAddr("bob");
         alice = makeAddr("alice");
