@@ -18,7 +18,7 @@ clean  :; forge clean
 # Remove modules
 remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
 
-install :; forge install openzeppelin/openzeppelin-contracts@v4.8.3 --no-commit && forge install foundry-rs/forge-std@v1.5.3 --no-commit
+install :; forge install openzeppelin/openzeppelin-contracts@v4.8.3 --no-commit && forge install foundry-rs/forge-std@v1.5.3 --no-commit && forge install klaytn/klaytn-contracts --no-commit
 
 # Update Dependencies
 update:; forge update
@@ -35,3 +35,7 @@ anvil :; anvil -m 'test test test test test test test test test test test junk' 
 
 NETWORK_ARGS := --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_KEY) --broadcast
 
+# Deploy to BAOBAB:
+#1 make deployProblemSolver 
+
+deployProblemSolver:; forge create --rpc-url $(BAOBAB_RPC_URL) --private-key $(PRIVATE_KEY) script/DeployProblemSolver.s.sol:DeployProblemSolver
