@@ -5,11 +5,12 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract NFTMarketplace is Ownable {
-    uint256 private _tokenId;
+    mapping(address => uint256) private _tokenId;
     uint256 private _serviceFee; // percent * 100, e.g. 2500 is 25.00%
     mapping(uint256 => bool) private _listed;
     mapping(uint256 => address) private _tokenOwners;
     mapping(uint256 => uint256) private _tokenPrices;
+    mapping(uint256 => string) private _tokenURIs;
 
     event Listed(address indexed owner, uint256 indexed tokenId, uint256 price);
     event Unlisted(address indexed owner, uint256 indexed tokenId);
@@ -34,17 +35,32 @@ contract NFTMarketplace is Ownable {
         _serviceFee = serviceFee;
     }
 
-    function list(uint256 tokenId, uint256 price) external payable {
+    function list(
+        uint256[] memory prices,
+        string[] memory tokenURIs
+    ) external payable {
         IERC721 token = IERC721(msg.sender);
-        require(token.ownerOf(tokenId) == msg.sender, "Unauthorized");
-        require(!_listed[tokenId], "Already listed");
+        require(prices.length == tokenURIs.length, "Invalid input");
 
-        token.safeTransferFrom(msg.sender, address(this), tokenId);
-        _listed[tokenId] = true;
-        _tokenOwners[tokenId] = msg.sender;
-        _tokenPrices[tokenId] = price;
+        uint256 userTokenId = _tokenId[msg.sender]; // get user's starting token ID
+        for (uint256 i = 0; i < prices.length; i++) {
+            userTokenId++; // increment user's token ID
+            uint256 tokenId = uint256(
+                keccak256(abi.encodePacked(msg.sender, userTokenId))
+            ); // generate unique token ID
 
-        emit Listed(msg.sender, tokenId, price);
+            require(!_listed[tokenId], "Already listed");
+
+            token.safeTransferFrom(msg.sender, address(this), tokenId);
+            _listed[tokenId] = true;
+            _tokenOwners[tokenId] = msg.sender;
+            _tokenPrices[tokenId] = prices[i];
+            _tokenURIs[tokenId] = tokenURIs[i];
+
+            emit Listed(msg.sender, tokenId, prices[i]);
+        }
+
+        _tokenId[msg.sender] = userTokenId; // store user's latest token ID
     }
 
     function unlist(uint256 tokenId) external {
@@ -56,6 +72,7 @@ contract NFTMarketplace is Ownable {
         _listed[tokenId] = false;
         _tokenOwners[tokenId] = address(0);
         _tokenPrices[tokenId] = 0;
+        _tokenURIs[tokenId] = "";
 
         emit Unlisted(msg.sender, tokenId);
     }
@@ -78,6 +95,7 @@ contract NFTMarketplace is Ownable {
         _listed[tokenId] = false;
         _tokenOwners[tokenId] = address(0);
         _tokenPrices[tokenId] = 0;
+        _tokenURIs[tokenId] = "";
 
         emit Sold(
             _tokenOwners[tokenId],
@@ -94,5 +112,11 @@ contract NFTMarketplace is Ownable {
 
     function getTokenPrice(uint256 tokenId) external view returns (uint256) {
         return _tokenPrices[tokenId];
+    }
+
+    function getTokenURI(
+        uint256 tokenId
+    ) external view returns (string memory) {
+        return _tokenURIs[tokenId];
     }
 }

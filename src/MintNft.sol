@@ -9,9 +9,9 @@ import "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 contract MyNFT is ERC721URIStorage, Ownable {
     using Strings for uint256;
 
-    uint256 private _tokenId;
     string private _baseTokenURI;
     uint256 private _fee;
+    mapping(address => uint256) private _tokenId; // mapping to store latest token ID for each user
     mapping(uint256 => bool) private _authorizedTransfer;
 
     constructor(
@@ -32,14 +32,22 @@ contract MyNFT is ERC721URIStorage, Ownable {
         _baseTokenURI = baseTokenURI;
     }
 
+    function getTokenId() private returns (uint256) {
+        _tokenId[msg.sender]++; // increment user's token ID
+        return
+            uint256(
+                keccak256(abi.encodePacked(msg.sender, _tokenId[msg.sender]))
+            ); // generate unique token ID
+    }
+
     function mintNFT(uint256 _count, string memory tokenURI) external payable {
         require(_count > 0, "Invalid input");
         require(msg.value == _fee * _count, "Insufficient payment");
 
         for (uint256 i = 0; i < _count; i++) {
-            _tokenId++;
-            _safeMint(msg.sender, _tokenId);
-            _setTokenURI(_tokenId, tokenURI);
+            uint256 tokenId = getTokenId();
+            _safeMint(msg.sender, tokenId);
+            _setTokenURI(tokenId, tokenURI);
         }
     }
 
@@ -51,25 +59,15 @@ contract MyNFT is ERC721URIStorage, Ownable {
         _authorizedTransfer[tokenId] = true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override {
-        require(
-            _isApprovedOrOwner(_msgSender(), tokenId),
-            "transfer caller is not owner nor approved"
-        );
-        require(ownerOf(tokenId) == from, "transfer of token that is not own");
-        require(to != address(0), "transfer to the zero address");
-        require(
-            _authorizedTransfer[tokenId] || _msgSender() == owner(),
-            "Unauthorized transfer"
-        );
+    // function transferFrom(address from, address to, uint256 tokenId) public virtual override   {
+    //     require(_isApprovedOrOwner(_msgSender(), tokenId), "transfer caller is not owner nor approved");
+    //     require(ownerOf(tokenId) == from, "transfer of token that is not own");
+    //     require(to != address(0), "transfer to the zero address");
+    //     require(_authorizedTransfer[tokenId] || _msgSender() == owner(), "Unauthorized transfer");
 
-        _authorizedTransfer[tokenId] = false; // reset the authorization flag
-        super.transferFrom(from, to, tokenId);
-    }
+    //     _authorizedTransfer[tokenId] = false; // reset the authorization flag
+    //     super.transferFrom(from, to, tokenId);
+    // }
 
     function setMintFee(uint256 fee) external onlyOwner {
         _fee = fee;
