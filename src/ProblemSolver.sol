@@ -33,6 +33,36 @@ contract ProblemSolver {
 
     // Mapping to track the balance of the smart contract
     mapping(address => uint) public contractBalances;
+    // Event to log when a new problem is created
+    event ProblemCreated(uint indexed problemId, string title, address user);
+
+    // Event to log when an expert places a bid on a problem
+    event BidPlaced(
+        uint indexed problemId,
+        uint indexed bidId,
+        address expert,
+        uint bidAmount
+    );
+
+    // Event to log when an expert is selected for a problem
+    event ExpertSelected(uint indexed problemId, address selectedExpert);
+
+    // Event to log when a problem is marked as solved by the user
+    event ProblemSolved(
+        uint indexed problemId,
+        address user,
+        address selectedExpert,
+        uint cost
+    );
+
+    // Event to log when a problem is marked as unsolved by the user
+    event ProblemUnsolved(uint indexed problemId, address user, uint cost);
+
+    // Event to log when a transfer of funds is made from the contract to an expert
+    event FundsTransferred(uint indexed problemId, address expert, uint amount);
+
+    // Event to log when a refund is made to a user
+    event Refund(uint indexed problemId, address user, uint amount);
 
     // Function to create a new problem
     function createProblem(
@@ -54,6 +84,7 @@ contract ProblemSolver {
             false
         );
         problems.push(newProblem);
+        emit ProblemCreated(problemId, _title, msg.sender);
     }
 
     // Function for experts to bid on a problem
@@ -78,6 +109,7 @@ contract ProblemSolver {
             _expertDescription
         );
         problemBids[_problemId].push(newBid);
+        emit BidPlaced(_problemId, bidId, msg.sender, _bidAmount);
     }
 
     // check expert have bid on this problem id or not
@@ -134,6 +166,7 @@ contract ProblemSolver {
         payable(address(this)).transfer(problem.cost);
         // selected
         problem.selecting = true;
+        emit ExpertSelected(_problemId, selectedBid.expert);
     }
 
     // Function for the user to mark the problem as solved and trigger the transfer of funds to the expert
@@ -153,6 +186,12 @@ contract ProblemSolver {
         problem.markedAsSolved = true;
         // Transfer funds to the selected expert
         transferFundsToExpert(_problemId, _selectedExpert);
+        emit ProblemSolved(
+            _problemId,
+            problem.user,
+            _selectedExpert,
+            problem.cost
+        );
     }
 
     // Function for the user to mark the problem as unsolved and trigger refund to user
@@ -169,6 +208,7 @@ contract ProblemSolver {
         problem.markedAsSolved = true;
         // Transfer funds back to the user
         refundUser(_problemId);
+        emit ProblemUnsolved(_problemId, problem.user, problem.cost);
     }
 
     // Internal function to transfer funds from the contract to the selected expert
@@ -183,6 +223,7 @@ contract ProblemSolver {
         require(amount >= problem.cost, "Insufficient funds in the contract");
         // Transfer the cost from smart contract to expert
         payable(_selectedExpert).transfer(problem.cost);
+        emit FundsTransferred(_problemId, _selectedExpert, problem.cost);
     }
 
     // Internal function to refund the user if a problem remains unsolved
@@ -191,6 +232,7 @@ contract ProblemSolver {
         require(problem.markedAsSolved, "Problem is not marked as solved");
         // Refund the user the cost of the problem
         payable(problem.user).transfer(problem.cost);
+        emit Refund(_problemId, problem.user, problem.cost);
     }
 
     // Function to get problem details
