@@ -6,9 +6,12 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721UR
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 
-contract MyNFT is ERC721URIStorage, Ownable {
+contract MintNft is ERC721URIStorage, Ownable {
+    struct NFTInfo {
+        uint256 tokenId;
+        string tokenURI;
+    }
     using Strings for uint256;
-
     string private _baseTokenURI;
     uint256 private _fee;
     mapping(address => uint256) private _tokenId; // mapping to store latest token ID for each user
@@ -51,30 +54,36 @@ contract MyNFT is ERC721URIStorage, Ownable {
         }
     }
 
-    function authorizeTransfer(uint256 tokenId) external {
-        require(_exists(tokenId), "Token does not exist");
-        require(ownerOf(tokenId) == msg.sender, "Unauthorized");
-        require(!_authorizedTransfer[tokenId], "Already authorized");
-
-        _authorizedTransfer[tokenId] = true;
-    }
-
-    // function transferFrom(address from, address to, uint256 tokenId) public virtual override   {
-    //     require(_isApprovedOrOwner(_msgSender(), tokenId), "transfer caller is not owner nor approved");
-    //     require(ownerOf(tokenId) == from, "transfer of token that is not own");
-    //     require(to != address(0), "transfer to the zero address");
-    //     require(_authorizedTransfer[tokenId] || _msgSender() == owner(), "Unauthorized transfer");
-
-    //     _authorizedTransfer[tokenId] = false; // reset the authorization flag
-    //     super.transferFrom(from, to, tokenId);
-    // }
-
     function setMintFee(uint256 fee) external onlyOwner {
         _fee = fee;
     }
 
     function getMintFee() external view returns (uint256) {
         return _fee;
+    }
+
+    function getNFTInfo(
+        uint256 tokenId
+    ) external view returns (address owner, string memory tokenURI) {
+        require(_exists(tokenId), "Token ID does not exist");
+        owner = ownerOf(tokenId);
+        tokenURI = ERC721URIStorage.tokenURI(tokenId);
+    }
+
+    function getMyNFTs() external view returns (NFTInfo[] memory) {
+        NFTInfo[] memory nftInfos = new NFTInfo[](_tokenId[msg.sender]);
+
+        for (uint256 i = 1; i <= _tokenId[msg.sender]; i++) {
+            uint256 tokenId = uint256(
+                keccak256(abi.encodePacked(msg.sender, i))
+            );
+            nftInfos[i - 1] = NFTInfo(
+                tokenId,
+                ERC721URIStorage.tokenURI(tokenId)
+            );
+        }
+
+        return nftInfos;
     }
 
     receive() external payable {}
